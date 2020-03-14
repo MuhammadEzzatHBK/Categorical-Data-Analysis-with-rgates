@@ -1,0 +1,80 @@
+---
+title: "Categorical Data Analysis with rgates"
+author: "Muhammad Ezzat"
+date: "3/14/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Inroduction 
+This is a tutorial for categorical data analysis with rgates package, if you haven't checked it out yet here's a github link : https://github.com/MuhammadEzzatHBK/rgates . It's currently on Github only but I'm looking forward to a CRAN publish.
+Without any further to do let's get started. For this tutorial I'm using the Netflix shows dataset it has useful relatable easy to understand categorical & numerical variables that we can work with. 
+
+A link to the dataset : https://www.kaggle.com/shivamb/netflix-shows .
+```{r,include=FALSE}
+#Including Packages
+library(tidyverse)
+library(rgates)
+library(ggthemes)
+#Preparing Data
+netflix <- read_csv('netflix_titles.csv')
+netflix <- na.omit(netflix)
+netflix <- arrange(netflix,title)
+netflix <- separate(netflix,duration,into = c('dur','unit'),sep=' ')
+netflix$dur <- as.numeric(netflix$dur) 
+```
+```{r,include=TRUE}
+summary(netflix)
+```
+## Using rgates in filtering data
+We all know the fliter function from the dplyr package, with rgates we can create more complex yet powerful logical conditions that we can filter our data based on in the simple dplyr framework.
+```{r,include=TRUE}
+comedy_tv_shows <- filter(netflix, and(netflix$type=="TV Show",grepl('Comedies',netflix$listed_in)))
+head(comedy_tv_shows,3)
+```
+Here we used the and() gate/function to filter the data for comdey tv shows.There are more advanced gates/filters, such as the inhibit() gate. It works by the term "X but not Y" so it returns TRUE only if X is so & Y isn't. We can use it to extract non romantic movies like follows.
+```{r,include=TRUE}
+non_romantic_movies <- filter(netflix,inhibit(netflix$type =='Movie',grepl('Romantic',netflix$listed_in)))
+head(non_romantic_movies,3)
+```
+We can even chain gates inside the same filter function, in the next chunk what I'm showing you is basically an inhibit() gate running inside an and() gate, so the result coming from inhibit() is going inside the and() as one of it's two inputs to extract non Drama movies produced in the United States.
+```{r,include=TRUE}
+USA_nonDramaMovies <- filter(netflix,and(netflix$country=='United States',
+                                         inhibit(netflix$type =='Movie',grepl('Drama',netflix$listed_in))))
+head(USA_nonDramaMovies,3)
+```
+## Using rgates in various analysis tasks
+If you thought about it, this package is just a group of functions that produces logical/boolean vectors, surely it's merge & integration in frameworks and pipelines is feasable.The next chunk shows a pipeline integrated with rgates functions, don't be intimidated by it as I'll break it down step by step.
+```{r,include=TRUE}
+filter(netflix,netflix$type=='Movie')%>%
+        mutate(is_american_millennial =
+            and(release_year>=2000,grepl('United States',country)))%>%
+                group_by(is_american_millennial) %>% summarize(mean_duration = mean(dur))%>%
+  ggplot(aes(x=is_american_millennial,y=mean_duration))+geom_col()+
+                theme_hc()+theme(panel.grid.major.x = element_blank())+
+  xlab('Is it an american movies released after 2000?')+
+  ylab('Mean movie duration')+
+  ggtitle('Mean duration for american millennial movies & other movies',
+          subtitle = 'Using rgates package in categorical data analysis')
+
+```
+
+First of all we filter our data for movies with a single condition, although we could use the transefer() gate but we don't really need that.
+
+Then we create a new column with the mutate function, that column is a logical column which basically an and() gate for two conditions regarding the place & time of movie release (USA & 2000's).
+
+Then we can simply group by this column as it only has two values TRUE & FALSE. TRUE means it is an american millennial movie while FALSE means it isn't.
+
+Then we summarize for the mean movie duration for both movie groups. And of course drawing a plot is better in conveying information.
+
+So we drew a bar plot with the summarized data, rest of the chunk is just adding themes & titles. It can't win the ggplo2 beauty competition but it does the job.
+
+## Practice
+If you are really intrested in such topic I suggest that you download the package & the dataset from links above **NOW**. Start practicing by recreating this pipelines or even creating your own pipelines using other real-world data. Until next time friends. See you again. 
+
